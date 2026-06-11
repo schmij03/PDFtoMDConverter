@@ -9,6 +9,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     :root {
       --bg: #0d1117;
@@ -290,6 +291,33 @@
       font-size: .75rem; border-top: 1px solid var(--border); margin-top: auto;
     }
 
+    /* ── Token info ── */
+    .token-info {
+      padding: 10px 22px; border-top: 1px solid var(--border);
+      font-size: .75rem; color: var(--text-muted);
+      display: flex; gap: 16px; align-items: center;
+    }
+    .token-info span { display: flex; align-items: center; gap: 5px; }
+    .token-pill {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1px 8px; font-size: .72rem;
+      color: var(--text); font-family: monospace;
+    }
+
+    /* ── Raw tab header (copy button) ── */
+    .raw-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .raw-header-label { font-size: .78rem; color: var(--text-muted); }
+    .btn-copy {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 4px 12px; font-size: .78rem;
+      color: var(--text-muted); cursor: pointer; transition: all .2s;
+    }
+    .btn-copy:hover { background: var(--border); color: var(--text); }
+    .btn-copy.copied { color: var(--success); border-color: var(--success); }
+
     /* ── Scrollbar ── */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -379,8 +407,11 @@ Gib ausschließlich den Markdown-Text zurück.`;
       const [isStreaming, setIsStreaming] = useState(false);
       const [pageImages, setPageImages] = useState([]);  // dataUrl per page (0-indexed)
       const [activeTab, setActiveTab]   = useState('preview');
-      const fileInputRef = useRef(null);
-      const abortRef     = useRef(null);
+      const [tokenInfo, setTokenInfo]   = useState(null);  // { input, output }
+      const [copied, setCopied]         = useState(false);
+      const fileInputRef  = useRef(null);
+      const abortRef      = useRef(null);
+      const tabContentRef = useRef(null);
 
       /* Figures = pages referenced in markdown via figures/page-N.png */
       const figures = useMemo(() => {
@@ -392,6 +423,13 @@ Gib ausschließlich den Markdown-Text zurück.`;
         const source = pageImages.map((d, i) => ({ name: `page-${i + 1}.png`, pageNum: i + 1, dataUrl: d }));
         return refs.size > 0 ? source.filter(f => refs.has(f.pageNum)) : source;
       }, [markdown, pageImages]);
+
+      /* Auto-scroll raw tab during streaming */
+      React.useEffect(() => {
+        if (isStreaming && activeTab === 'raw' && tabContentRef.current) {
+          tabContentRef.current.scrollTop = tabContentRef.current.scrollHeight;
+        }
+      }, [markdown, isStreaming, activeTab]);
 
       const storeKey = (k) => { setApiKey(k); localStorage.setItem('claude_api_key', k); };
 
@@ -410,7 +448,7 @@ Gib ausschließlich den Markdown-Text zurück.`;
         if (!apiKey.trim()) { setError('Bitte API-Schlüssel eingeben.'); return; }
         if (!file)          { setError('Bitte eine PDF-Datei auswählen.'); return; }
 
-        setLoading(true); setError(''); setMarkdown(''); setPageImages([]); setProgress(0);
+        setLoading(true); setError(''); setMarkdown(''); setPageImages([]); setProgress(0); setTokenInfo(null);
         const ctrl = new AbortController();
         abortRef.current = ctrl;
 
@@ -495,7 +533,11 @@ Gib ausschließlich den Markdown-Text zurück.`;
               if (!raw || raw === '[DONE]') continue;
               try {
                 const ev = JSON.parse(raw);
-                if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+                if (ev.type === 'message_start') {
+                  setTokenInfo({ input: ev.message?.usage?.input_tokens ?? 0, output: 0 });
+                } else if (ev.type === 'message_delta' && ev.usage) {
+                  setTokenInfo(prev => ({ ...(prev || {}), output: ev.usage.output_tokens ?? 0 }));
+                } else if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
                   fullText += ev.delta.text;
                   setMarkdown(fullText);
                   setProgress(46 + Math.min(50, Math.round((fullText.length / 12000) * 50)));
@@ -529,6 +571,27 @@ Gib ausschließlich den Markdown-Text zurück.`;
         try { return window.marked.parse(markdown); }
         catch (_) { return `<pre>${markdown}</pre>`; }
       }, [markdown, isStreaming]);
+
+      const copyMarkdown = async () => {
+        try {
+          await navigator.clipboard.writeText(markdown);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch (_) {}
+      };
+
+      const downloadZip = async () => {
+        const zip = new JSZip();
+        zip.file(`${basename}.md`, markdown);
+        if (figures.length > 0) {
+          const folder = zip.folder('figures');
+          figures.forEach(fig => folder.file(fig.name, fig.dataUrl.split(',')[1], { base64: true }));
+        }
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        Object.assign(document.createElement('a'), { href: url, download: `${basename}.zip` }).click();
+        URL.revokeObjectURL(url);
+      };
 
       const basename = (file?.name || 'dokument').replace(/\.pdf$/i, '');
 
@@ -665,7 +728,7 @@ Gib ausschließlich den Markdown-Text zurück.`;
                   ))}
                 </div>
 
-                <div className="tab-content">
+                <div className="tab-content" ref={tabContentRef}>
 
                   {activeTab === 'preview' && (
                     isStreaming
@@ -686,7 +749,19 @@ Gib ausschließlich den Markdown-Text zurück.`;
                   )}
 
                   {activeTab === 'raw' && (
-                    <pre className="raw-md">{markdown}</pre>
+                    <div>
+                      <div className="raw-header">
+                        <span className="raw-header-label">Markdown-Quelltext</span>
+                        <button
+                          className={`btn-copy${copied ? ' copied' : ''}`}
+                          onClick={copyMarkdown}
+                          disabled={!markdown}
+                        >
+                          {copied ? '✓ Kopiert' : '⎘ Kopieren'}
+                        </button>
+                      </div>
+                      <pre className="raw-md">{markdown}</pre>
+                    </div>
                   )}
 
                   {activeTab === 'figures' && (
@@ -731,18 +806,30 @@ Gib ausschließlich den Markdown-Text zurück.`;
                 </div>
 
                 {!isStreaming && markdown && (
-                  <div className="download-bar">
-                    <button className="btn-dl-main"
-                      onClick={() => downloadBlob(markdown, `${basename}.md`, 'text/markdown;charset=utf-8')}>
-                      ↓ Markdown herunterladen (.md)
-                    </button>
-                    {figures.length > 0 && (
+                  <>
+                    <div className="download-bar">
                       <button className="btn-dl-main"
-                        onClick={() => figures.forEach(f => downloadDataUrl(f.dataUrl, f.name))}>
-                        ↓ Alle Abbildungen ({figures.length}) herunterladen
+                        onClick={() => downloadBlob(markdown, `${basename}.md`, 'text/markdown;charset=utf-8')}>
+                        ↓ Markdown (.md)
                       </button>
+                      {figures.length > 0 && (
+                        <button className="btn-dl-main"
+                          onClick={() => figures.forEach(f => downloadDataUrl(f.dataUrl, f.name))}>
+                          ↓ Abbildungen ({figures.length}×&thinsp;PNG)
+                        </button>
+                      )}
+                      <button className="btn-dl-main" onClick={downloadZip}>
+                        ↓ Alles als ZIP
+                      </button>
+                    </div>
+                    {tokenInfo && (
+                      <div className="token-info">
+                        <span>Tokens verbraucht:</span>
+                        <span>Eingabe&nbsp;<span className="token-pill">{tokenInfo.input?.toLocaleString('de-CH')}</span></span>
+                        <span>Ausgabe&nbsp;<span className="token-pill">{tokenInfo.output?.toLocaleString('de-CH')}</span></span>
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             )}
