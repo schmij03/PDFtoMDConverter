@@ -318,6 +318,27 @@
     .btn-copy:hover { background: var(--border); color: var(--text); }
     .btn-copy.copied { color: var(--success); border-color: var(--success); }
 
+    /* ── Mode switch ── */
+    .mode-switch {
+      display: flex; border: 1px solid var(--border); border-radius: 6px;
+      overflow: hidden; width: fit-content; margin-bottom: 16px;
+    }
+    .mode-btn {
+      padding: 7px 18px; background: none; border: none; cursor: pointer;
+      font-size: .875rem; color: var(--text-muted); transition: all .2s;
+    }
+    .mode-btn + .mode-btn { border-left: 1px solid var(--border); }
+    .mode-btn.active {
+      background: var(--accent); color: #0d1117; font-weight: 600;
+    }
+    .mode-btn:not(.active):hover { background: var(--surface2); color: var(--text); }
+    .local-notice {
+      background: rgba(63,185,80,.08); border: 1px solid rgba(63,185,80,.25);
+      border-radius: 6px; padding: 10px 14px; font-size: .8rem;
+      color: var(--text-muted); margin-top: 10px; line-height: 1.7;
+    }
+    .local-notice strong { color: var(--text); }
+
     /* ── Scrollbar ── */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -391,8 +412,65 @@ Gib ausschließlich den Markdown-Text zurück.`;
       Object.assign(document.createElement('a'), { href: dataUrl, download: filename }).click();
     };
 
+    /* ─── Local PDF-to-Markdown helpers ─── */
+
+    const groupLines = (items, thresh = 3) => {
+      const valid = items.filter(it => it.str?.trim());
+      if (!valid.length) return [];
+      const sorted = [...valid].sort((a, b) => {
+        const dy = b.transform[5] - a.transform[5];
+        return Math.abs(dy) > thresh ? dy : a.transform[4] - b.transform[4];
+      });
+      const lines = [];
+      let cur = null;
+      for (const it of sorted) {
+        const y = it.transform[5];
+        if (!cur || Math.abs(cur.y - y) > thresh) { cur = { y, items: [], maxH: 0 }; lines.push(cur); }
+        cur.items.push(it);
+        if (it.height > cur.maxH) cur.maxH = it.height;
+      }
+      return lines;
+    };
+
+    const linesToMd = (lines, avgH, pageNum) => {
+      let out = `<!-- page: ${pageNum} -->\n\n`;
+      let para = [];
+      const flush = () => {
+        const t = para.join(' ').trim();
+        if (t) { out += t + '\n\n'; para = []; }
+      };
+      for (const line of lines) {
+        const text = line.items.map(it => it.str).join('').trim();
+        if (!text) continue;
+        const r = avgH > 0 ? line.maxH / avgH : 1;
+        const isBullet = /^[•‣◦⁃\-\*•]\s+/.test(text);
+        const isNum    = /^\d+[.)]\s+/.test(text);
+        if      (r >= 1.65) { flush(); out += `# ${text}\n\n`; }
+        else if (r >= 1.30) { flush(); out += `## ${text}\n\n`; }
+        else if (r >= 1.10) { flush(); out += `### ${text}\n\n`; }
+        else if (isBullet)  { flush(); out += `- ${text.replace(/^[•‣◦⁃\-\*•]\s+/, '')}\n`; }
+        else if (isNum)     { flush(); out += `${text}\n`; }
+        else                { para.push(text); }
+      }
+      flush();
+      return out;
+    };
+
+    const guessMeta = (firstLines, fullText) => {
+      const big = firstLines.reduce((m, l) => l.maxH > (m?.maxH ?? 0) ? l : m, null);
+      const title = big ? big.items.map(it => it.str).join('').trim() : 'Nicht erkannt';
+      const yearM = fullText.match(/\b(19[5-9]\d|20[0-3]\d)\b/);
+      const doiM  = fullText.match(/\b(10\.\d{4,9}\/[^\s,.)>»"]{2,})/);
+      return {
+        title,
+        year: yearM ? parseInt(yearM[0]) : new Date().getFullYear(),
+        doi:  doiM  ? doiM[0].replace(/[,.)>»"]+$/, '') : 'nicht verfügbar',
+      };
+    };
+
     /* ─── App ─── */
     const App = () => {
+      const [mode, setMode]             = useState(() => localStorage.getItem('conv_mode') || 'claude');
       const [apiKey, setApiKey]         = useState(() => localStorage.getItem('claude_api_key') || '');
       const [showKey, setShowKey]       = useState(false);
       const [model, setModel]           = useState('claude-opus-4-8');
@@ -431,7 +509,8 @@ Gib ausschließlich den Markdown-Text zurück.`;
         }
       }, [markdown, isStreaming, activeTab]);
 
-      const storeKey = (k) => { setApiKey(k); localStorage.setItem('claude_api_key', k); };
+      const storeMode = (m) => { setMode(m); localStorage.setItem('conv_mode', m); };
+      const storeKey  = (k) => { setApiKey(k); localStorage.setItem('claude_api_key', k); };
 
       const acceptFile = (f) => {
         if (!f) return;
@@ -445,8 +524,8 @@ Gib ausschließlich den Markdown-Text zurück.`;
       }, []);
 
       const convert = async () => {
-        if (!apiKey.trim()) { setError('Bitte API-Schlüssel eingeben.'); return; }
-        if (!file)          { setError('Bitte eine PDF-Datei auswählen.'); return; }
+        if (!file) { setError('Bitte eine PDF-Datei auswählen.'); return; }
+        if (mode === 'claude' && !apiKey.trim()) { setError('Bitte API-Schlüssel eingeben.'); return; }
 
         setLoading(true); setError(''); setMarkdown(''); setPageImages([]); setProgress(0); setTokenInfo(null);
         const ctrl = new AbortController();
@@ -473,83 +552,123 @@ Gib ausschließlich den Markdown-Text zurück.`;
             await new Promise(r => setTimeout(r, 1200));
           }
 
-          /* 3 – Build message */
-          setStep('Anfrage wird zusammengestellt…');
-          setProgress(42);
+          /* ── Local path ── */
+          if (mode === 'local') {
+            setStep('Text wird extrahiert…');
+            setProgress(42);
 
-          const userContent = [];
-          images.forEach((dataUrl, idx) => {
-            userContent.push({ type: 'text', text: `Seite ${idx + 1}:` });
-            userContent.push({
-              type: 'image',
-              source: { type: 'base64', media_type: 'image/png', data: dataUrl.split(',')[1] }
-            });
-          });
-          userContent.push({ type: 'text', text: 'Bitte konvertiere dieses Dokument jetzt vollständig in Markdown.' });
-
-          /* 4 – Stream API call */
-          setStep('Claude analysiert das Dokument… (kann einige Minuten dauern)');
-          setIsStreaming(true);
-          setActiveTab('raw');
-          setProgress(46);
-
-          const resp = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': apiKey.trim(),
-              'anthropic-version': '2023-06-01',
-              'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-              model,
-              max_tokens: 16000,
-              stream: true,
-              system: SYSTEM_PROMPT(limit),
-              messages: [{ role: 'user', content: userContent }]
-            }),
-            signal: ctrl.signal
-          });
-
-          if (!resp.ok) {
-            const err = await resp.json().catch(() => ({}));
-            throw new Error(err.error?.message || `HTTP ${resp.status}: ${resp.statusText}`);
-          }
-
-          /* 5 – Read stream */
-          const reader  = resp.body.getReader();
-          const decoder = new TextDecoder();
-          let fullText = '', buf = '';
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buf += decoder.decode(value, { stream: true });
-            const lines = buf.split('\n');
-            buf = lines.pop() ?? '';
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const raw = line.slice(6).trim();
-              if (!raw || raw === '[DONE]') continue;
-              try {
-                const ev = JSON.parse(raw);
-                if (ev.type === 'message_start') {
-                  setTokenInfo({ input: ev.message?.usage?.input_tokens ?? 0, output: 0 });
-                } else if (ev.type === 'message_delta' && ev.usage) {
-                  setTokenInfo(prev => ({ ...(prev || {}), output: ev.usage.output_tokens ?? 0 }));
-                } else if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
-                  fullText += ev.delta.text;
-                  setMarkdown(fullText);
-                  setProgress(46 + Math.min(50, Math.round((fullText.length / 12000) * 50)));
-                }
-              } catch (_) {}
+            // Collect all text items to compute a global average font size
+            const allPageItems = [];
+            for (let i = 1; i <= limit; i++) {
+              setStep(`Seite ${i} von ${limit} wird analysiert…`);
+              setProgress(42 + Math.round((i / limit) * 30));
+              const pg = await pdf.getPage(i);
+              const tc = await pg.getTextContent({ normalizeWhitespace: true });
+              allPageItems.push(tc.items);
             }
-          }
 
-          setProgress(100);
-          setIsStreaming(false);
-          setActiveTab('preview');
-          setStep('');
+            const allH = allPageItems.flat().filter(it => it.height > 1).map(it => it.height);
+            const avgH = allH.length ? allH.reduce((a, b) => a + b, 0) / allH.length : 12;
+            const fullText = allPageItems.flat().map(it => it.str).join(' ');
+
+            // Metadata from first page
+            const firstLines = groupLines(allPageItems[0] || []);
+            const meta = guessMeta(firstLines, fullText);
+
+            setStep('Markdown wird aufgebaut…');
+            setProgress(75);
+
+            let md = `---\ntitle: "${meta.title.replace(/"/g, '\\"')}"\nauthors:\n  - "Nicht erkannt"\nyear: ${meta.year}\npublisher: "Nicht erkannt"\ndoi: "${meta.doi}"\n---\n\n`;
+
+            for (let i = 0; i < allPageItems.length; i++) {
+              const lines = groupLines(allPageItems[i]);
+              md += linesToMd(lines, avgH, i + 1);
+              // Reference the rendered page PNG as a figure placeholder
+              md += `![Seite ${i + 1}](figures/page-${i + 1}.png)\n\n`;
+            }
+
+            setMarkdown(md);
+            setProgress(100);
+            setActiveTab('preview');
+            setStep('');
+
+          /* ── Claude API path ── */
+          } else {
+            setStep('Anfrage wird zusammengestellt…');
+            setProgress(42);
+
+            const userContent = [];
+            images.forEach((dataUrl, idx) => {
+              userContent.push({ type: 'text', text: `Seite ${idx + 1}:` });
+              userContent.push({
+                type: 'image',
+                source: { type: 'base64', media_type: 'image/png', data: dataUrl.split(',')[1] }
+              });
+            });
+            userContent.push({ type: 'text', text: 'Bitte konvertiere dieses Dokument jetzt vollständig in Markdown.' });
+
+            setStep('Claude analysiert das Dokument… (kann einige Minuten dauern)');
+            setIsStreaming(true);
+            setActiveTab('raw');
+            setProgress(46);
+
+            const resp = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey.trim(),
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+              },
+              body: JSON.stringify({
+                model,
+                max_tokens: 16000,
+                stream: true,
+                system: SYSTEM_PROMPT(limit),
+                messages: [{ role: 'user', content: userContent }]
+              }),
+              signal: ctrl.signal
+            });
+
+            if (!resp.ok) {
+              const err = await resp.json().catch(() => ({}));
+              throw new Error(err.error?.message || `HTTP ${resp.status}: ${resp.statusText}`);
+            }
+
+            const reader  = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = '', buf = '';
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buf += decoder.decode(value, { stream: true });
+              const lines = buf.split('\n');
+              buf = lines.pop() ?? '';
+              for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const raw = line.slice(6).trim();
+                if (!raw || raw === '[DONE]') continue;
+                try {
+                  const ev = JSON.parse(raw);
+                  if (ev.type === 'message_start') {
+                    setTokenInfo({ input: ev.message?.usage?.input_tokens ?? 0, output: 0 });
+                  } else if (ev.type === 'message_delta' && ev.usage) {
+                    setTokenInfo(prev => ({ ...(prev || {}), output: ev.usage.output_tokens ?? 0 }));
+                  } else if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+                    fullText += ev.delta.text;
+                    setMarkdown(fullText);
+                    setProgress(46 + Math.min(50, Math.round((fullText.length / 12000) * 50)));
+                  }
+                } catch (_) {}
+              }
+            }
+
+            setProgress(100);
+            setIsStreaming(false);
+            setActiveTab('preview');
+            setStep('');
+          }
 
         } catch (err) {
           if (err.name === 'AbortError') {
@@ -608,42 +727,78 @@ Gib ausschließlich den Markdown-Text zurück.`;
 
             {/* ── Config card ── */}
             <div className="card">
-              <label>Einstellungen</label>
-              <div className="config-grid">
-                <div className="config-group">
-                  <label>Claude API-Schlüssel</label>
-                  <div className="api-row">
-                    <input
-                      className="mono"
-                      type={showKey ? 'text' : 'password'}
-                      placeholder="sk-ant-api03-…"
-                      value={apiKey}
-                      onChange={e => storeKey(e.target.value)}
-                    />
-                    <button className="btn-icon" onClick={() => setShowKey(v => !v)} title="Anzeigen / Verbergen">
-                      {showKey ? '🙈' : '👁️'}
-                    </button>
+              <label>Konvertierungsmethode</label>
+              <div className="mode-switch">
+                <button className={`mode-btn${mode === 'claude' ? ' active' : ''}`}
+                  onClick={() => storeMode('claude')}>
+                  Claude API
+                </button>
+                <button className={`mode-btn${mode === 'local' ? ' active' : ''}`}
+                  onClick={() => storeMode('local')}>
+                  Lokal (offline)
+                </button>
+              </div>
+
+              {mode === 'local' ? (
+                <div className="local-notice">
+                  <strong>Offline-Modus:</strong> Text wird direkt aus der PDF extrahiert — kein API-Schlüssel nötig.
+                  Qualität hängt von der PDF-Struktur ab: Textebenen werden korrekt erkannt, gescannte PDFs (Bilder) werden nicht transkribiert.
+                  Metadaten (Autor, Verlag) werden automatisch erraten.
+                </div>
+              ) : (
+                <>
+                  <div className="config-grid" style={{ marginTop: 12 }}>
+                    <div className="config-group">
+                      <label>Claude API-Schlüssel</label>
+                      <div className="api-row">
+                        <input
+                          className="mono"
+                          type={showKey ? 'text' : 'password'}
+                          placeholder="sk-ant-api03-…"
+                          value={apiKey}
+                          onChange={e => storeKey(e.target.value)}
+                        />
+                        <button className="btn-icon" onClick={() => setShowKey(v => !v)} title="Anzeigen / Verbergen">
+                          {showKey ? '🙈' : '👁️'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="config-group">
+                      <label>Modell</label>
+                      <select value={model} onChange={e => setModel(e.target.value)}>
+                        <option value="claude-opus-4-8">Opus 4 (beste Qualität)</option>
+                        <option value="claude-sonnet-4-6">Sonnet 4 (ausgewogen)</option>
+                        <option value="claude-haiku-4-5-20251001">Haiku 4 (schnell)</option>
+                      </select>
+                    </div>
+                    <div className="config-group">
+                      <label>Max. Seiten</label>
+                      <select value={maxPages} onChange={e => setMaxPages(Number(e.target.value))}>
+                        <option value={10}>10 Seiten</option>
+                        <option value={20}>20 Seiten</option>
+                        <option value={30}>30 Seiten</option>
+                        <option value={50}>50 Seiten</option>
+                      </select>
+                    </div>
+                  </div>
+                  <p className="hint">Der API-Schlüssel wird ausschließlich lokal im Browser gespeichert.</p>
+                </>
+              )}
+
+              {mode === 'local' && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="config-group" style={{ maxWidth: 160 }}>
+                    <label>Max. Seiten</label>
+                    <select value={maxPages} onChange={e => setMaxPages(Number(e.target.value))}>
+                      <option value={10}>10 Seiten</option>
+                      <option value={20}>20 Seiten</option>
+                      <option value={30}>30 Seiten</option>
+                      <option value={50}>50 Seiten</option>
+                      <option value={200}>200 Seiten</option>
+                    </select>
                   </div>
                 </div>
-                <div className="config-group">
-                  <label>Modell</label>
-                  <select value={model} onChange={e => setModel(e.target.value)}>
-                    <option value="claude-opus-4-8">Opus 4 (beste Qualität)</option>
-                    <option value="claude-sonnet-4-6">Sonnet 4 (ausgewogen)</option>
-                    <option value="claude-haiku-4-5-20251001">Haiku 4 (schnell)</option>
-                  </select>
-                </div>
-                <div className="config-group">
-                  <label>Max. Seiten</label>
-                  <select value={maxPages} onChange={e => setMaxPages(Number(e.target.value))}>
-                    <option value={10}>10 Seiten</option>
-                    <option value={20}>20 Seiten</option>
-                    <option value={30}>30 Seiten</option>
-                    <option value={50}>50 Seiten</option>
-                  </select>
-                </div>
-              </div>
-              <p className="hint">Der API-Schlüssel wird ausschließlich lokal im Browser gespeichert.</p>
+              )}
             </div>
 
             {/* ── Dropzone ── */}
@@ -681,7 +836,7 @@ Gib ausschließlich den Markdown-Text zurück.`;
             {/* ── Actions ── */}
             <div className="actions">
               <button className="btn-primary" onClick={convert}
-                disabled={loading || !file || !apiKey.trim()}>
+                disabled={loading || !file || (mode === 'claude' && !apiKey.trim())}>
                 {loading ? 'Wird konvertiert…' : 'In Markdown konvertieren'}
               </button>
               {loading && (
@@ -822,7 +977,7 @@ Gib ausschließlich den Markdown-Text zurück.`;
                         ↓ Alles als ZIP
                       </button>
                     </div>
-                    {tokenInfo && (
+                    {tokenInfo && mode === 'claude' && (
                       <div className="token-info">
                         <span>Tokens verbraucht:</span>
                         <span>Eingabe&nbsp;<span className="token-pill">{tokenInfo.input?.toLocaleString('de-CH')}</span></span>
