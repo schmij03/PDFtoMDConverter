@@ -12,175 +12,102 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --surface2: #21262d;
-      --border: #30363d;
-      --text: #c9d1d9;
-      --text-muted: #8b949e;
-      --accent: #58a6ff;
-      --accent-hover: #79b8ff;
-      --success: #3fb950;
-      --error-bg: rgba(248,81,73,.12);
-      --error-border: rgba(248,81,73,.4);
-      --error-text: #f85149;
-      --code-bg: #1f2428;
+      --bg:            #0d1117;
+      --surface:       #161b22;
+      --surface2:      #21262d;
+      --border:        #30363d;
+      --text:          #c9d1d9;
+      --text-muted:    #8b949e;
+      --accent:        #58a6ff;
+      --accent-hover:  #79b8ff;
+      --success:       #3fb950;
+      --error-bg:      rgba(248,81,73,.12);
+      --error-border:  rgba(248,81,73,.4);
+      --error-text:    #f85149;
+      --code-bg:       #1f2428;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
+      background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
     }
     .app { display: flex; flex-direction: column; min-height: 100vh; }
 
     /* ── Header ── */
-    .header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 20px 0;
-    }
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 0; }
     .header-inner { max-width: 860px; margin: 0 auto; padding: 0 24px; }
-    .header h1 {
-      font-size: 1.6rem; font-weight: 700; color: #f0f6fc; letter-spacing: -.5px;
-    }
-    .header p { color: var(--text-muted); margin-top: 3px; font-size: .9rem; }
+    .header h1 { font-size: 1.6rem; font-weight: 700; color: #f0f6fc; letter-spacing: -.5px; }
+    .header p  { color: var(--text-muted); margin-top: 3px; font-size: .875rem; }
 
-    /* ── Main layout ── */
+    /* ── Main ── */
     .main {
-      max-width: 860px; margin: 0 auto; padding: 28px 24px;
-      width: 100%; flex: 1;
-      display: flex; flex-direction: column; gap: 14px;
+      max-width: 860px; margin: 0 auto; padding: 28px 24px 100px;
+      width: 100%; flex: 1; display: flex; flex-direction: column; gap: 14px;
     }
 
-    /* ── Card / section ── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 18px 20px;
-    }
-    .card label {
-      display: block; font-weight: 600; font-size: .875rem;
-      color: var(--text); margin-bottom: 8px;
-    }
+    /* ── Card ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+    .card > label { display: block; font-weight: 600; font-size: .875rem; margin-bottom: 10px; }
 
-    /* ── Config row ── */
-    .config-grid {
-      display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: end;
-    }
-    @media (max-width: 600px) { .config-grid { grid-template-columns: 1fr; } }
-    .config-group { display: flex; flex-direction: column; gap: 6px; }
-    .config-group label { font-size: .82rem; color: var(--text-muted); font-weight: 500; }
-
-    input[type="password"], input[type="text"], select {
+    /* ── Config ── */
+    .config-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .config-group { display: flex; flex-direction: column; gap: 5px; }
+    .config-group label { font-size: .8rem; color: var(--text-muted); }
+    select {
       background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 6px; padding: 8px 12px; color: var(--text);
-      font-size: .875rem; width: 100%; transition: border-color .2s;
+      border-radius: 6px; padding: 7px 10px; color: var(--text); font-size: .875rem;
+      cursor: pointer; min-width: 140px;
     }
-    input[type="password"]:focus, input[type="text"]:focus, select:focus {
-      outline: none; border-color: var(--accent);
-    }
-    input.mono { font-family: 'SFMono-Regular', Consolas, monospace; }
-    select { cursor: pointer; }
+    select:focus { outline: none; border-color: var(--accent); }
     select option { background: var(--surface2); }
-
-    .api-row { display: flex; gap: 8px; }
-    .api-row input { flex: 1; }
-    .btn-icon {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 6px; padding: 8px 12px; cursor: pointer;
-      color: var(--text-muted); font-size: .95rem; transition: background .2s;
-      white-space: nowrap;
-    }
-    .btn-icon:hover { background: var(--border); color: var(--text); }
-    .hint { font-size: .76rem; color: var(--text-muted); margin-top: 7px; }
+    .hint { font-size: .76rem; color: var(--text-muted); margin-top: 8px; }
 
     /* ── Dropzone ── */
     .dropzone {
-      background: var(--surface); border: 2px dashed var(--border);
-      border-radius: 8px; padding: 44px 24px; text-align: center;
-      cursor: pointer; transition: all .2s; user-select: none;
+      background: var(--surface); border: 2px dashed var(--border); border-radius: 8px;
+      padding: 44px 24px; text-align: center; cursor: pointer;
+      transition: all .2s; user-select: none;
     }
-    .dropzone:hover, .dropzone.dragging {
-      border-color: var(--accent); background: rgba(88,166,255,.05);
-    }
-    .dropzone.has-file {
-      border-style: solid; border-color: var(--success);
-      background: rgba(63,185,80,.05); cursor: default;
-    }
+    .dropzone:hover, .dropzone.dragging { border-color: var(--accent); background: rgba(88,166,255,.05); }
+    .dropzone.has-file { border-style: solid; border-color: var(--success); background: rgba(63,185,80,.05); }
     .drop-icon { font-size: 2.4rem; display: block; margin-bottom: 10px; }
-    .drop-prompt p { font-size: .95rem; }
+    .drop-prompt p    { font-size: .95rem; }
     .drop-prompt small { color: var(--text-muted); font-size: .78rem; margin-top: 4px; display: block; }
     .file-info { display: flex; align-items: center; justify-content: center; gap: 16px; }
     .file-name { font-weight: 600; }
     .file-size { color: var(--text-muted); font-size: .82rem; margin-top: 2px; }
     .file-change {
       background: none; border: 1px solid var(--border); border-radius: 4px;
-      padding: 4px 10px; font-size: .78rem; color: var(--text-muted);
-      cursor: pointer; margin-top: 4px;
+      padding: 3px 10px; font-size: .78rem; color: var(--text-muted);
+      cursor: pointer; margin-top: 6px; display: inline-block;
     }
     .file-change:hover { background: var(--surface2); }
 
     /* ── Buttons ── */
     .actions { display: flex; gap: 10px; }
     .btn-primary {
-      flex: 1; background: var(--accent); color: #0d1117;
-      border: none; border-radius: 6px; padding: 12px 24px;
-      font-size: .95rem; font-weight: 700; cursor: pointer; transition: background .2s;
+      flex: 1; background: var(--accent); color: #0d1117; border: none;
+      border-radius: 6px; padding: 12px 24px; font-size: .95rem;
+      font-weight: 700; cursor: pointer; transition: background .2s;
     }
     .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
     .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
     .btn-secondary {
-      background: var(--surface2); color: var(--text);
-      border: 1px solid var(--border); border-radius: 6px;
-      padding: 12px 18px; font-size: .875rem; cursor: pointer; transition: background .2s;
+      background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 18px; font-size: .875rem; cursor: pointer;
     }
     .btn-secondary:hover { background: var(--border); }
-
-    /* ── Loading ── */
-    .loading-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 18px 20px;
-    }
-    .progress-bar {
-      height: 3px; background: var(--surface2); border-radius: 2px;
-      overflow: hidden; margin-bottom: 14px;
-    }
-    .progress-fill {
-      height: 100%; background: var(--accent); border-radius: 2px;
-      transition: width .35s ease;
-    }
-    .loading-step {
-      display: flex; align-items: center; gap: 10px;
-      font-size: .85rem; color: var(--text-muted);
-    }
-    .spinner {
-      display: inline-block; width: 15px; height: 15px;
-      border: 2px solid var(--border); border-top-color: var(--accent);
-      border-radius: 50%; animation: spin .75s linear infinite; flex-shrink: 0;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Error ── */
     .error-card {
       background: var(--error-bg); border: 1px solid var(--error-border);
-      border-radius: 8px; padding: 14px 18px;
-      display: flex; align-items: flex-start; gap: 10px;
-      font-size: .875rem; color: var(--error-text);
+      border-radius: 8px; padding: 14px 18px; display: flex;
+      align-items: flex-start; gap: 10px; font-size: .875rem; color: var(--error-text);
     }
 
     /* ── Results ── */
-    .results-section {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; overflow: hidden;
-    }
-    .tabs {
-      display: flex; border-bottom: 1px solid var(--border);
-      background: var(--surface2); overflow-x: auto;
-    }
+    .results-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface2); overflow-x: auto; }
     .tab {
       padding: 11px 20px; background: none; border: none; border-bottom: 2px solid transparent;
       color: var(--text-muted); cursor: pointer; font-size: .875rem;
@@ -188,25 +115,22 @@
     }
     .tab:hover { color: var(--text); }
     .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
     .tab-content { padding: 22px; max-height: 640px; overflow-y: auto; }
 
     /* ── Markdown preview ── */
-    .md-preview { line-height: 1.75; font-size: .9rem; color: var(--text); }
-    .md-preview h1, .md-preview h2, .md-preview h3,
-    .md-preview h4, .md-preview h5 {
+    .md-preview { line-height: 1.75; font-size: .9rem; }
+    .md-preview h1, .md-preview h2, .md-preview h3, .md-preview h4 {
       color: #f0f6fc; margin: 1.4em 0 .5em; line-height: 1.3;
     }
     .md-preview h1 { font-size: 1.45em; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
     .md-preview h2 { font-size: 1.2em; }
     .md-preview h3 { font-size: 1.05em; }
-    .md-preview p { margin: .75em 0; }
+    .md-preview p  { margin: .75em 0; }
     .md-preview ul, .md-preview ol { margin: .75em 0; padding-left: 2em; }
     .md-preview li { margin: .3em 0; }
     .md-preview code {
-      background: var(--code-bg); padding: .12em .4em;
-      border-radius: 3px; font-size: .82em;
-      font-family: 'SFMono-Regular', Consolas, monospace;
+      background: var(--code-bg); padding: .12em .4em; border-radius: 3px;
+      font-size: .82em; font-family: 'SFMono-Regular', Consolas, monospace;
     }
     .md-preview pre {
       background: var(--code-bg); border: 1px solid var(--border);
@@ -217,22 +141,25 @@
     .md-preview th, .md-preview td { border: 1px solid var(--border); padding: 7px 12px; text-align: left; }
     .md-preview th { background: var(--surface2); font-weight: 600; }
     .md-preview tr:nth-child(even) { background: rgba(255,255,255,.02); }
-    .md-preview blockquote {
-      border-left: 3px solid var(--accent); padding-left: 16px;
-      margin: 1em 0; color: var(--text-muted);
-    }
+    .md-preview blockquote { border-left: 3px solid var(--accent); padding-left: 16px; margin: 1em 0; color: var(--text-muted); }
     .md-preview img { max-width: 100%; border-radius: 4px; margin: .8em 0; }
     .md-preview a { color: var(--accent); }
     .md-preview hr { border: none; border-top: 1px solid var(--border); margin: 1.5em 0; }
 
-    /* ── Raw ── */
-    .raw-md {
-      font-family: 'SFMono-Regular', Consolas, monospace;
-      font-size: .78rem; line-height: 1.65;
-      white-space: pre-wrap; word-break: break-word; color: var(--text);
+    /* ── Raw tab ── */
+    .raw-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .raw-header-label { font-size: .78rem; color: var(--text-muted); }
+    .btn-copy {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 4px 12px; font-size: .78rem;
+      color: var(--text-muted); cursor: pointer; transition: all .2s;
     }
-    .streaming-wrap { display: flex; flex-direction: column; gap: 12px; }
-    .streaming-label { display: flex; align-items: center; gap: 8px; font-size: .82rem; color: var(--text-muted); }
+    .btn-copy:hover { background: var(--border); color: var(--text); }
+    .btn-copy.copied { color: var(--success); border-color: var(--success); }
+    .raw-md {
+      font-family: 'SFMono-Regular', Consolas, monospace; font-size: .78rem;
+      line-height: 1.65; white-space: pre-wrap; word-break: break-word;
+    }
 
     /* ── Figures ── */
     .figures-wrap { display: flex; flex-direction: column; gap: 18px; }
@@ -246,98 +173,57 @@
       font-size: .8rem; color: var(--accent); font-family: monospace;
     }
     .figures-empty { color: var(--text-muted); font-size: .875rem; text-align: center; padding: 32px 0; }
-    .figures-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px;
-    }
-    .figure-card {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 6px; overflow: hidden;
-    }
+    .figures-grid  { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+    .figure-card   { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
     .figure-img-wrap {
-      background: #000; padding: 6px;
-      aspect-ratio: 3/4; display: flex; align-items: center; justify-content: center; overflow: hidden;
+      background: #000; padding: 6px; aspect-ratio: 3/4;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
     }
     .figure-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    .figure-footer {
-      padding: 9px 12px; display: flex; align-items: center;
-      justify-content: space-between; gap: 6px;
-    }
-    .figure-name {
-      font-size: .75rem; color: var(--text-muted); font-family: monospace;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    .figure-footer { padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .figure-name  { font-size: .75rem; color: var(--text-muted); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .btn-dl-sm {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 4px; padding: 3px 9px; font-size: .75rem;
-      color: var(--text); cursor: pointer; flex-shrink: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+      padding: 3px 9px; font-size: .75rem; color: var(--text); cursor: pointer; flex-shrink: 0;
     }
     .btn-dl-sm:hover { background: var(--border); }
 
     /* ── Download bar ── */
-    .download-bar {
-      padding: 14px 22px; border-top: 1px solid var(--border);
-      display: flex; gap: 10px; flex-wrap: wrap;
-    }
+    .download-bar { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-wrap: wrap; }
     .btn-dl-main {
-      background: var(--success); color: #0d1117; border: none;
-      border-radius: 6px; padding: 9px 18px; font-size: .875rem;
-      font-weight: 600; cursor: pointer; transition: opacity .2s;
+      background: var(--success); color: #0d1117; border: none; border-radius: 6px;
+      padding: 9px 18px; font-size: .875rem; font-weight: 600; cursor: pointer;
     }
     .btn-dl-main:hover { opacity: .84; }
 
+    /* ── Fixed status bar ── */
+    .statusbar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 10px 24px 14px; z-index: 200;
+      box-shadow: 0 -6px 24px rgba(0,0,0,.4);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .status-stages { display: flex; align-items: center; gap: 6px; font-size: .78rem; }
+    .status-sep { color: var(--border); }
+    .status-stage {
+      padding: 2px 12px; border-radius: 10px; transition: all .25s;
+    }
+    .status-stage.done   { color: var(--success); }
+    .status-stage.active { background: var(--accent); color: #0d1117; font-weight: 700; }
+    .status-stage.wait   { color: var(--border); }
+    .status-progress { display: flex; align-items: center; gap: 10px; }
+    .status-track {
+      flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden;
+    }
+    .status-fill {
+      height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s ease;
+    }
+    .status-pct  { font-size: .75rem; color: var(--text-muted); width: 34px; text-align: right; font-family: monospace; }
+    .status-text { font-size: .78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
     /* ── Footer ── */
-    .footer {
-      text-align: center; padding: 22px; color: var(--text-muted);
-      font-size: .75rem; border-top: 1px solid var(--border); margin-top: auto;
-    }
-
-    /* ── Token info ── */
-    .token-info {
-      padding: 10px 22px; border-top: 1px solid var(--border);
-      font-size: .75rem; color: var(--text-muted);
-      display: flex; gap: 16px; align-items: center;
-    }
-    .token-info span { display: flex; align-items: center; gap: 5px; }
-    .token-pill {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 10px; padding: 1px 8px; font-size: .72rem;
-      color: var(--text); font-family: monospace;
-    }
-
-    /* ── Raw tab header (copy button) ── */
-    .raw-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 10px;
-    }
-    .raw-header-label { font-size: .78rem; color: var(--text-muted); }
-    .btn-copy {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 5px; padding: 4px 12px; font-size: .78rem;
-      color: var(--text-muted); cursor: pointer; transition: all .2s;
-    }
-    .btn-copy:hover { background: var(--border); color: var(--text); }
-    .btn-copy.copied { color: var(--success); border-color: var(--success); }
-
-    /* ── Mode switch ── */
-    .mode-switch {
-      display: flex; border: 1px solid var(--border); border-radius: 6px;
-      overflow: hidden; width: fit-content; margin-bottom: 16px;
-    }
-    .mode-btn {
-      padding: 7px 18px; background: none; border: none; cursor: pointer;
-      font-size: .875rem; color: var(--text-muted); transition: all .2s;
-    }
-    .mode-btn + .mode-btn { border-left: 1px solid var(--border); }
-    .mode-btn.active {
-      background: var(--accent); color: #0d1117; font-weight: 600;
-    }
-    .mode-btn:not(.active):hover { background: var(--surface2); color: var(--text); }
-    .local-notice {
-      background: rgba(63,185,80,.08); border: 1px solid rgba(63,185,80,.25);
-      border-radius: 6px; padding: 10px 14px; font-size: .8rem;
-      color: var(--text-muted); margin-top: 10px; line-height: 1.7;
-    }
-    .local-notice strong { color: var(--text); }
+    .footer { text-align: center; padding: 22px; color: var(--text-muted); font-size: .75rem; border-top: 1px solid var(--border); }
 
     /* ── Scrollbar ── */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -352,68 +238,30 @@
   <script type="text/babel">
     const { useState, useRef, useCallback, useMemo, useEffect } = React;
 
-    /* ─── pdf.js worker ─── */
+    /* ─── pdf.js ─── */
     window.pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    /* ─── Helpers ─── */
+    /* ─── Constants ─── */
+    const STAGES = [
+      { key: 'load',    label: 'Laden'       },
+      { key: 'render',  label: 'Rendern'     },
+      { key: 'analyze', label: 'Analysieren' },
+      { key: 'done',    label: 'Fertig'      },
+    ];
+
+    /* ─── Local conversion helpers ─── */
+
     const renderPageToPNG = async (page, scale = 1.5) => {
-      const viewport = page.getViewport({ scale });
+      const vp = page.getViewport({ scale });
       const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      canvas.width  = vp.width;
+      canvas.height = vp.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
       return canvas.toDataURL('image/png');
     };
 
-    const SYSTEM_PROMPT = (n) =>
-`Du bist ein Experte für die Konvertierung wissenschaftlicher PDF-Dokumente in strukturiertes Markdown.
-
-Ich liefere dir ${n} Seitenbilder. Die Seiten sind als page-1.png bis page-${n}.png gespeichert.
-
-Erstelle folgende Ausgabe – NUR Markdown, keine Erklärungen davor oder danach:
-
-1. YAML-Frontmatter:
----
-title: "Vollständiger Titel des Dokuments"
-authors:
-  - "Erster Autor"
-  - "Zweiter Autor"
-year: 2024
-publisher: "Verlag, Journal oder Konferenzname"
-doi: "10.xxxx/xxxxx"
----
-
-2. Zu Beginn jeder Seite einen Seitenmarker:
-<!-- page: N -->
-
-3. Abbildungen, Grafiken, Diagramme als Markdown-Bilder:
-![Figure X: Kurze Beschreibung (Seite P)](figures/page-P.png)
-   – X = fortlaufende Abbildungsnummer, P = Seitennummer der Abbildung.
-
-4. Vollständiger Text mit korrekter Markdown-Formatierung:
-   - Überschriften: #, ##, ###
-   - Listen und Aufzählungen
-   - Fett **text** und kursiv *text*
-   - Mathe-Formeln in LaTeX: $inline$ und $$block$$
-   - Tabellen im Markdown-Format
-   - Fußnoten: [^1]
-
-Gib ausschließlich den Markdown-Text zurück.`;
-
-    const downloadBlob = (content, filename, mime) => {
-      const url = URL.createObjectURL(new Blob([content], { type: mime }));
-      const a = Object.assign(document.createElement('a'), { href: url, download: filename });
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-    const downloadDataUrl = (dataUrl, filename) => {
-      Object.assign(document.createElement('a'), { href: dataUrl, download: filename }).click();
-    };
-
-    /* ─── Local PDF-to-Markdown helpers ─── */
-
+    /* Group text items into visual lines sorted top-to-bottom, left-to-right */
     const groupLines = (items, thresh = 3) => {
       const valid = items.filter(it => it.str?.trim());
       if (!valid.length) return [];
@@ -432,6 +280,7 @@ Gib ausschließlich den Markdown-Text zurück.`;
       return lines;
     };
 
+    /* Convert grouped lines to Markdown, using global avgH for heading detection */
     const linesToMd = (lines, avgH, pageNum) => {
       let out = `<!-- page: ${pageNum} -->\n\n`;
       let para = [];
@@ -442,13 +291,13 @@ Gib ausschließlich den Markdown-Text zurück.`;
       for (const line of lines) {
         const text = line.items.map(it => it.str).join('').trim();
         if (!text) continue;
-        const r = avgH > 0 ? line.maxH / avgH : 1;
-        const isBullet = /^[•‣◦⁃\-\*•]\s+/.test(text);
+        const r        = avgH > 0 ? line.maxH / avgH : 1;
+        const isBullet = /^[•‣◦⁃\-\*]\s+/.test(text);
         const isNum    = /^\d+[.)]\s+/.test(text);
         if      (r >= 1.65) { flush(); out += `# ${text}\n\n`; }
         else if (r >= 1.30) { flush(); out += `## ${text}\n\n`; }
         else if (r >= 1.10) { flush(); out += `### ${text}\n\n`; }
-        else if (isBullet)  { flush(); out += `- ${text.replace(/^[•‣◦⁃\-\*•]\s+/, '')}\n`; }
+        else if (isBullet)  { flush(); out += `- ${text.replace(/^[•‣◦⁃\-\*]\s+/, '')}\n`; }
         else if (isNum)     { flush(); out += `${text}\n`; }
         else                { para.push(text); }
       }
@@ -456,6 +305,7 @@ Gib ausschließlich den Markdown-Text zurück.`;
       return out;
     };
 
+    /* Extract best-guess metadata from first page + full text */
     const guessMeta = (firstLines, fullText) => {
       const big = firstLines.reduce((m, l) => l.maxH > (m?.maxH ?? 0) ? l : m, null);
       const title = big ? big.items.map(it => it.str).join('').trim() : 'Nicht erkannt';
@@ -468,207 +318,135 @@ Gib ausschließlich den Markdown-Text zurück.`;
       };
     };
 
+    /* Sanitise filename (keep safe chars only) */
+    const safeName = (s) => s.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9_\-]/g, '_');
+
+    /* ─── Download helpers ─── */
+    const dlBlob = (content, name, mime) => {
+      const url = URL.createObjectURL(new Blob([content], { type: mime }));
+      Object.assign(document.createElement('a'), { href: url, download: name }).click();
+      URL.revokeObjectURL(url);
+    };
+    const dlDataUrl = (dataUrl, name) =>
+      Object.assign(document.createElement('a'), { href: dataUrl, download: name }).click();
+
     /* ─── App ─── */
     const App = () => {
-      const [mode, setMode]             = useState(() => localStorage.getItem('conv_mode') || 'claude');
-      const [apiKey, setApiKey]         = useState(() => localStorage.getItem('claude_api_key') || '');
-      const [showKey, setShowKey]       = useState(false);
-      const [model, setModel]           = useState('claude-opus-4-8');
-      const [maxPages, setMaxPages]     = useState(30);
-      const [file, setFile]             = useState(null);
+      const [maxPages, setMaxPages]   = useState(30);
+      const [file, setFile]           = useState(null);
       const [isDragging, setIsDragging] = useState(false);
-      const [loading, setLoading]       = useState(false);
-      const [step, setStep]             = useState('');
-      const [progress, setProgress]     = useState(0);
-      const [error, setError]           = useState('');
-      const [markdown, setMarkdown]     = useState('');
-      const [isStreaming, setIsStreaming] = useState(false);
-      const [pageImages, setPageImages] = useState([]);  // dataUrl per page (0-indexed)
-      const [activeTab, setActiveTab]   = useState('preview');
-      const [tokenInfo, setTokenInfo]   = useState(null);  // { input, output }
-      const [copied, setCopied]         = useState(false);
+      const [loading, setLoading]     = useState(false);
+      const [stageIdx, setStageIdx]   = useState(0);
+      const [step, setStep]           = useState('');
+      const [progress, setProgress]   = useState(0);
+      const [error, setError]         = useState('');
+      const [markdown, setMarkdown]   = useState('');
+      const [pageImages, setPageImages] = useState([]);
+      const [activeTab, setActiveTab] = useState('preview');
+      const [copied, setCopied]       = useState(false);
       const fileInputRef  = useRef(null);
       const abortRef      = useRef(null);
       const tabContentRef = useRef(null);
 
-      /* Figures = pages referenced in markdown via figures/page-N.png */
+      const basename = useMemo(() => safeName(file?.name || 'dokument'), [file]);
+
+      /* Figures = all rendered pages referenced in the markdown */
       const figures = useMemo(() => {
-        if (pageImages.length === 0) return [];
+        if (!pageImages.length) return [];
+        const escaped = basename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`figures\\/${escaped}-(\\d+)\\.png`, 'g');
         const refs = new Set();
-        const re = /figures\/page-(\d+)\.png/g;
         let m;
         while ((m = re.exec(markdown)) !== null) refs.add(parseInt(m[1]));
-        const source = pageImages.map((d, i) => ({ name: `page-${i + 1}.png`, pageNum: i + 1, dataUrl: d }));
-        return refs.size > 0 ? source.filter(f => refs.has(f.pageNum)) : source;
-      }, [markdown, pageImages]);
+        const all = pageImages.map((d, i) => ({ name: `${basename}-${i + 1}.png`, pageNum: i + 1, dataUrl: d }));
+        return refs.size > 0 ? all.filter(f => refs.has(f.pageNum)) : all;
+      }, [markdown, pageImages, basename]);
 
-      /* Auto-scroll raw tab during streaming */
-      React.useEffect(() => {
-        if (isStreaming && activeTab === 'raw' && tabContentRef.current) {
-          tabContentRef.current.scrollTop = tabContentRef.current.scrollHeight;
-        }
-      }, [markdown, isStreaming, activeTab]);
-
-      const storeMode = (m) => { setMode(m); localStorage.setItem('conv_mode', m); };
-      const storeKey  = (k) => { setApiKey(k); localStorage.setItem('claude_api_key', k); };
-
-      const acceptFile = (f) => {
+      const acceptFile = useCallback((f) => {
         if (!f) return;
         if (f.type !== 'application/pdf') { setError('Bitte nur PDF-Dateien auswählen.'); return; }
         setFile(f); setMarkdown(''); setPageImages([]); setError('');
-      };
+      }, []);
 
       const handleDrop = useCallback((e) => {
-        e.preventDefault(); setIsDragging(false);
-        acceptFile(e.dataTransfer.files[0]);
-      }, []);
+        e.preventDefault(); setIsDragging(false); acceptFile(e.dataTransfer.files[0]);
+      }, [acceptFile]);
 
       const convert = async () => {
         if (!file) { setError('Bitte eine PDF-Datei auswählen.'); return; }
-        if (mode === 'claude' && !apiKey.trim()) { setError('Bitte API-Schlüssel eingeben.'); return; }
 
-        setLoading(true); setError(''); setMarkdown(''); setPageImages([]); setProgress(0); setTokenInfo(null);
+        setLoading(true); setError(''); setMarkdown(''); setPageImages([]);
+        setProgress(0); setStageIdx(0);
         const ctrl = new AbortController();
         abortRef.current = ctrl;
 
         try {
-          /* 1 – Load PDF */
+          /* ── Stage 0: Load ── */
           setStep('PDF wird geladen…');
-          const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+          const pdf   = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
           const total = pdf.numPages;
           const limit = Math.min(total, maxPages);
+          const base  = safeName(file.name);
 
-          /* 2 – Render pages */
-          const images = [];
+          /* ── Stage 1: Render + extract text (single pass per page) ── */
+          setStageIdx(1);
+          const images      = [];
+          const allItems    = [];
+
           for (let i = 1; i <= limit; i++) {
-            setStep(`Seite ${i} von ${limit} wird gerendert…`);
-            setProgress(Math.round((i / limit) * 38));
-            images.push(await renderPageToPNG(await pdf.getPage(i)));
+            if (ctrl.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+            setStep(`Seite ${i} von ${limit}…`);
+            setProgress(5 + Math.round((i / limit) * 65));
+
+            const page = await pdf.getPage(i);
+            /* Render PNG and extract text simultaneously */
+            const [dataUrl, tc] = await Promise.all([
+              renderPageToPNG(page),
+              page.getTextContent({ normalizeWhitespace: true }),
+            ]);
+            images.push(dataUrl);
+            allItems.push(tc.items);
           }
           setPageImages(images);
 
           if (total > limit) {
-            setStep(`Hinweis: Nur die ersten ${limit} von ${total} Seiten werden verarbeitet.`);
-            await new Promise(r => setTimeout(r, 1200));
+            setStep(`Nur die ersten ${limit} von ${total} Seiten werden verarbeitet.`);
+            await new Promise(r => setTimeout(r, 900));
           }
 
-          /* ── Local path ── */
-          if (mode === 'local') {
-            setStep('Text wird extrahiert…');
-            setProgress(42);
+          /* ── Stage 2: Build Markdown ── */
+          setStageIdx(2);
+          setStep('Markdown wird aufgebaut…');
+          setProgress(72);
 
-            // Collect all text items to compute a global average font size
-            const allPageItems = [];
-            for (let i = 1; i <= limit; i++) {
-              setStep(`Seite ${i} von ${limit} wird analysiert…`);
-              setProgress(42 + Math.round((i / limit) * 30));
-              const pg = await pdf.getPage(i);
-              const tc = await pg.getTextContent({ normalizeWhitespace: true });
-              allPageItems.push(tc.items);
+          /* Global average font size for consistent heading detection */
+          const allH  = allItems.flat().filter(it => it.height > 1).map(it => it.height);
+          const avgH  = allH.length ? allH.reduce((a, b) => a + b, 0) / allH.length : 12;
+          const fullText = allItems.flat().map(it => it.str).join(' ');
+
+          const meta = guessMeta(groupLines(allItems[0] ?? []), fullText);
+
+          let md = `---\ntitle: "${meta.title.replace(/"/g, '\\"')}"\nauthors:\n  - "Nicht erkannt"\nyear: ${meta.year}\npublisher: "Nicht erkannt"\ndoi: "${meta.doi}"\n---\n\n`;
+
+          let figNum = 0;
+          for (let i = 0; i < allItems.length; i++) {
+            md += linesToMd(groupLines(allItems[i]), avgH, i + 1);
+            /* Pages with almost no text are likely figure/image pages */
+            const pageText = allItems[i].map(it => it.str).join('').trim();
+            if (pageText.length < 150) {
+              figNum++;
+              md += `![Figure ${figNum}: Seite ${i + 1}](figures/${base}-${i + 1}.png)\n\n`;
             }
-
-            const allH = allPageItems.flat().filter(it => it.height > 1).map(it => it.height);
-            const avgH = allH.length ? allH.reduce((a, b) => a + b, 0) / allH.length : 12;
-            const fullText = allPageItems.flat().map(it => it.str).join(' ');
-
-            // Metadata from first page
-            const firstLines = groupLines(allPageItems[0] || []);
-            const meta = guessMeta(firstLines, fullText);
-
-            setStep('Markdown wird aufgebaut…');
-            setProgress(75);
-
-            let md = `---\ntitle: "${meta.title.replace(/"/g, '\\"')}"\nauthors:\n  - "Nicht erkannt"\nyear: ${meta.year}\npublisher: "Nicht erkannt"\ndoi: "${meta.doi}"\n---\n\n`;
-
-            for (let i = 0; i < allPageItems.length; i++) {
-              const lines = groupLines(allPageItems[i]);
-              md += linesToMd(lines, avgH, i + 1);
-              // Reference the rendered page PNG as a figure placeholder
-              md += `![Seite ${i + 1}](figures/page-${i + 1}.png)\n\n`;
-            }
-
-            setMarkdown(md);
-            setProgress(100);
-            setActiveTab('preview');
-            setStep('');
-
-          /* ── Claude API path ── */
-          } else {
-            setStep('Anfrage wird zusammengestellt…');
-            setProgress(42);
-
-            const userContent = [];
-            images.forEach((dataUrl, idx) => {
-              userContent.push({ type: 'text', text: `Seite ${idx + 1}:` });
-              userContent.push({
-                type: 'image',
-                source: { type: 'base64', media_type: 'image/png', data: dataUrl.split(',')[1] }
-              });
-            });
-            userContent.push({ type: 'text', text: 'Bitte konvertiere dieses Dokument jetzt vollständig in Markdown.' });
-
-            setStep('Claude analysiert das Dokument… (kann einige Minuten dauern)');
-            setIsStreaming(true);
-            setActiveTab('raw');
-            setProgress(46);
-
-            const resp = await fetch('https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey.trim(),
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-              },
-              body: JSON.stringify({
-                model,
-                max_tokens: 16000,
-                stream: true,
-                system: SYSTEM_PROMPT(limit),
-                messages: [{ role: 'user', content: userContent }]
-              }),
-              signal: ctrl.signal
-            });
-
-            if (!resp.ok) {
-              const err = await resp.json().catch(() => ({}));
-              throw new Error(err.error?.message || `HTTP ${resp.status}: ${resp.statusText}`);
-            }
-
-            const reader  = resp.body.getReader();
-            const decoder = new TextDecoder();
-            let fullText = '', buf = '';
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buf += decoder.decode(value, { stream: true });
-              const lines = buf.split('\n');
-              buf = lines.pop() ?? '';
-              for (const line of lines) {
-                if (!line.startsWith('data: ')) continue;
-                const raw = line.slice(6).trim();
-                if (!raw || raw === '[DONE]') continue;
-                try {
-                  const ev = JSON.parse(raw);
-                  if (ev.type === 'message_start') {
-                    setTokenInfo({ input: ev.message?.usage?.input_tokens ?? 0, output: 0 });
-                  } else if (ev.type === 'message_delta' && ev.usage) {
-                    setTokenInfo(prev => ({ ...(prev || {}), output: ev.usage.output_tokens ?? 0 }));
-                  } else if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
-                    fullText += ev.delta.text;
-                    setMarkdown(fullText);
-                    setProgress(46 + Math.min(50, Math.round((fullText.length / 12000) * 50)));
-                  }
-                } catch (_) {}
-              }
-            }
-
-            setProgress(100);
-            setIsStreaming(false);
-            setActiveTab('preview');
-            setStep('');
+            setProgress(72 + Math.round(((i + 1) / allItems.length) * 24));
           }
+
+          setMarkdown(md);
+          setProgress(100);
+          setStageIdx(3);
+          setStep('Konvertierung abgeschlossen.');
+          await new Promise(r => setTimeout(r, 700));   // brief "Fertig" flash
+          setActiveTab('preview');
+          setStep('');
 
         } catch (err) {
           if (err.name === 'AbortError') {
@@ -676,7 +454,6 @@ Gib ausschließlich den Markdown-Text zurück.`;
           } else {
             setError(`Fehler: ${err.message}`);
           }
-          setIsStreaming(false);
           setStep('');
         } finally {
           setLoading(false);
@@ -684,121 +461,59 @@ Gib ausschließlich den Markdown-Text zurück.`;
         }
       };
 
-      /* Rendered preview – only after stream ends */
-      const previewHtml = useMemo(() => {
-        if (!markdown || isStreaming) return null;
-        try { return window.marked.parse(markdown); }
-        catch (_) { return `<pre>${markdown}</pre>`; }
-      }, [markdown, isStreaming]);
-
       const copyMarkdown = async () => {
-        try {
-          await navigator.clipboard.writeText(markdown);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        } catch (_) {}
+        try { await navigator.clipboard.writeText(markdown); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+        catch (_) {}
       };
 
       const downloadZip = async () => {
-        const zip = new JSZip();
+        const zip    = new JSZip();
         zip.file(`${basename}.md`, markdown);
         if (figures.length > 0) {
           const folder = zip.folder('figures');
-          figures.forEach(fig => folder.file(fig.name, fig.dataUrl.split(',')[1], { base64: true }));
+          figures.forEach(f => folder.file(f.name, f.dataUrl.split(',')[1], { base64: true }));
         }
         const blob = await zip.generateAsync({ type: 'blob' });
-        const url = URL.createObjectURL(blob);
+        const url  = URL.createObjectURL(blob);
         Object.assign(document.createElement('a'), { href: url, download: `${basename}.zip` }).click();
         URL.revokeObjectURL(url);
       };
 
-      const basename = (file?.name || 'dokument').replace(/\.pdf$/i, '');
+      const previewHtml = useMemo(() => {
+        if (!markdown) return null;
+        try { return window.marked.parse(markdown); } catch (_) { return `<pre>${markdown}</pre>`; }
+      }, [markdown]);
 
       return (
         <div className="app">
           <header className="header">
             <div className="header-inner">
               <h1>PDF → Markdown</h1>
-              <p>Wissenschaftliche PDFs mit Claude AI vollständig konvertieren</p>
+              <p>Offline-Konvertierung direkt im Browser — kein API-Schlüssel nötig</p>
             </div>
           </header>
 
           <main className="main">
 
-            {/* ── Config card ── */}
+            {/* ── Config ── */}
             <div className="card">
-              <label>Konvertierungsmethode</label>
-              <div className="mode-switch">
-                <button className={`mode-btn${mode === 'claude' ? ' active' : ''}`}
-                  onClick={() => storeMode('claude')}>
-                  Claude API
-                </button>
-                <button className={`mode-btn${mode === 'local' ? ' active' : ''}`}
-                  onClick={() => storeMode('local')}>
-                  Lokal (offline)
-                </button>
+              <label>Einstellungen</label>
+              <div className="config-row">
+                <div className="config-group">
+                  <label>Max. Seiten</label>
+                  <select value={maxPages} onChange={e => setMaxPages(Number(e.target.value))}>
+                    <option value={10}>10 Seiten</option>
+                    <option value={20}>20 Seiten</option>
+                    <option value={30}>30 Seiten</option>
+                    <option value={50}>50 Seiten</option>
+                    <option value={100}>100 Seiten</option>
+                    <option value={200}>200 Seiten</option>
+                  </select>
+                </div>
               </div>
-
-              {mode === 'local' ? (
-                <div className="local-notice">
-                  <strong>Offline-Modus:</strong> Text wird direkt aus der PDF extrahiert — kein API-Schlüssel nötig.
-                  Qualität hängt von der PDF-Struktur ab: Textebenen werden korrekt erkannt, gescannte PDFs (Bilder) werden nicht transkribiert.
-                  Metadaten (Autor, Verlag) werden automatisch erraten.
-                </div>
-              ) : (
-                <>
-                  <div className="config-grid" style={{ marginTop: 12 }}>
-                    <div className="config-group">
-                      <label>Claude API-Schlüssel</label>
-                      <div className="api-row">
-                        <input
-                          className="mono"
-                          type={showKey ? 'text' : 'password'}
-                          placeholder="sk-ant-api03-…"
-                          value={apiKey}
-                          onChange={e => storeKey(e.target.value)}
-                        />
-                        <button className="btn-icon" onClick={() => setShowKey(v => !v)} title="Anzeigen / Verbergen">
-                          {showKey ? '🙈' : '👁️'}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="config-group">
-                      <label>Modell</label>
-                      <select value={model} onChange={e => setModel(e.target.value)}>
-                        <option value="claude-opus-4-8">Opus 4 (beste Qualität)</option>
-                        <option value="claude-sonnet-4-6">Sonnet 4 (ausgewogen)</option>
-                        <option value="claude-haiku-4-5-20251001">Haiku 4 (schnell)</option>
-                      </select>
-                    </div>
-                    <div className="config-group">
-                      <label>Max. Seiten</label>
-                      <select value={maxPages} onChange={e => setMaxPages(Number(e.target.value))}>
-                        <option value={10}>10 Seiten</option>
-                        <option value={20}>20 Seiten</option>
-                        <option value={30}>30 Seiten</option>
-                        <option value={50}>50 Seiten</option>
-                      </select>
-                    </div>
-                  </div>
-                  <p className="hint">Der API-Schlüssel wird ausschließlich lokal im Browser gespeichert.</p>
-                </>
-              )}
-
-              {mode === 'local' && (
-                <div style={{ marginTop: 12 }}>
-                  <div className="config-group" style={{ maxWidth: 160 }}>
-                    <label>Max. Seiten</label>
-                    <select value={maxPages} onChange={e => setMaxPages(Number(e.target.value))}>
-                      <option value={10}>10 Seiten</option>
-                      <option value={20}>20 Seiten</option>
-                      <option value={30}>30 Seiten</option>
-                      <option value={50}>50 Seiten</option>
-                      <option value={200}>200 Seiten</option>
-                    </select>
-                  </div>
-                </div>
-              )}
+              <p className="hint">
+                Text wird direkt aus der PDF-Textebene extrahiert. Gescannte PDFs (reine Bilder) werden nicht transkribiert.
+              </p>
             </div>
 
             {/* ── Dropzone ── */}
@@ -819,7 +534,8 @@ Gib ausschließlich den Markdown-Text zurück.`;
                   <div>
                     <p className="file-name">{file.name}</p>
                     <p className="file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                    <button className="file-change" onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>
+                    <button className="file-change"
+                      onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>
                       Andere Datei wählen
                     </button>
                   </div>
@@ -828,15 +544,14 @@ Gib ausschließlich den Markdown-Text zurück.`;
                 <div className="drop-prompt">
                   <span className="drop-icon">📂</span>
                   <p>PDF hier ablegen oder klicken zum Auswählen</p>
-                  <small>Unterstützt PDFs bis zu {maxPages} Seiten</small>
+                  <small>Unterstützt bis zu {maxPages} Seiten</small>
                 </div>
               )}
             </div>
 
             {/* ── Actions ── */}
             <div className="actions">
-              <button className="btn-primary" onClick={convert}
-                disabled={loading || !file || (mode === 'claude' && !apiKey.trim())}>
+              <button className="btn-primary" onClick={convert} disabled={loading || !file}>
                 {loading ? 'Wird konvertiert…' : 'In Markdown konvertieren'}
               </button>
               {loading && (
@@ -846,35 +561,21 @@ Gib ausschließlich den Markdown-Text zurück.`;
               )}
             </div>
 
-            {/* ── Loading ── */}
-            {loading && step && (
-              <div className="loading-card">
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${progress}%` }} />
-                </div>
-                <div className="loading-step">
-                  <span className="spinner" />
-                  <span>{step}</span>
-                </div>
-              </div>
-            )}
-
             {/* ── Error ── */}
             {error && (
               <div className="error-card">
-                <span>⚠️</span>
-                <span>{error}</span>
+                <span>⚠️</span><span>{error}</span>
               </div>
             )}
 
             {/* ── Results ── */}
-            {(markdown || isStreaming) && (
+            {markdown && (
               <div className="results-section">
                 <div className="tabs">
                   {[
-                    { id: 'preview',  label: 'Vorschau' },
-                    { id: 'raw',      label: 'Rohtext' },
-                    { id: 'figures',  label: `Abbildungen (${figures.length})` },
+                    { id: 'preview', label: 'Vorschau' },
+                    { id: 'raw',     label: 'Rohtext' },
+                    { id: 'figures', label: `Abbildungen (${figures.length})` },
                   ].map(({ id, label }) => (
                     <button key={id} className={`tab${activeTab === id ? ' active' : ''}`}
                       onClick={() => setActiveTab(id)}>
@@ -886,32 +587,15 @@ Gib ausschließlich den Markdown-Text zurück.`;
                 <div className="tab-content" ref={tabContentRef}>
 
                   {activeTab === 'preview' && (
-                    isStreaming
-                      ? (
-                        <div className="streaming-wrap">
-                          <div className="streaming-label">
-                            <span className="spinner" />
-                            <span>Markdown wird generiert…</span>
-                          </div>
-                          <pre className="raw-md" style={{ maxHeight: 400, overflowY: 'auto', opacity: .7 }}>
-                            {markdown}
-                          </pre>
-                        </div>
-                      ) : (
-                        <div className="md-preview"
-                          dangerouslySetInnerHTML={{ __html: previewHtml || '' }} />
-                      )
+                    <div className="md-preview"
+                      dangerouslySetInnerHTML={{ __html: previewHtml || '' }} />
                   )}
 
                   {activeTab === 'raw' && (
                     <div>
                       <div className="raw-header">
                         <span className="raw-header-label">Markdown-Quelltext</span>
-                        <button
-                          className={`btn-copy${copied ? ' copied' : ''}`}
-                          onClick={copyMarkdown}
-                          disabled={!markdown}
-                        >
+                        <button className={`btn-copy${copied ? ' copied' : ''}`} onClick={copyMarkdown}>
                           {copied ? '✓ Kopiert' : '⎘ Kopieren'}
                         </button>
                       </div>
@@ -922,21 +606,14 @@ Gib ausschließlich den Markdown-Text zurück.`;
                   {activeTab === 'figures' && (
                     <div className="figures-wrap">
                       <div className="figures-notice">
-                        💡 <strong>Hinweis:</strong> Lege die heruntergeladenen Abbildungen in einen{' '}
-                        <code>figures/</code>-Unterordner <em>neben</em> der Markdown-Datei ab:
-                        <br />
-                        <code>{basename}.md</code>
-                        <br />
-                        <code>figures/page-1.png</code>
-                        <br />
-                        <code>figures/page-2.png</code>&nbsp;…
+                        💡 <strong>Hinweis:</strong> Lege die Abbildungen in einen{' '}
+                        <code>figures/</code>-Unterordner neben der Markdown-Datei:
+                        <br /><code>{basename}.md</code>
+                        <br /><code>figures/{basename}-1.png</code>
+                        <br /><code>figures/{basename}-2.png</code> …
                       </div>
                       {figures.length === 0 ? (
-                        <p className="figures-empty">
-                          {isStreaming
-                            ? 'Abbildungen werden nach Abschluss der Konvertierung angezeigt.'
-                            : 'Keine referenzierten Abbildungen gefunden.'}
-                        </p>
+                        <p className="figures-empty">Keine referenzierten Abbildungen gefunden.</p>
                       ) : (
                         <div className="figures-grid">
                           {figures.map(fig => (
@@ -947,7 +624,7 @@ Gib ausschließlich den Markdown-Text zurück.`;
                               <div className="figure-footer">
                                 <span className="figure-name">{fig.name}</span>
                                 <button className="btn-dl-sm"
-                                  onClick={() => downloadDataUrl(fig.dataUrl, fig.name)}>
+                                  onClick={() => dlDataUrl(fig.dataUrl, fig.name)}>
                                   ↓ DL
                                 </button>
                               </div>
@@ -960,41 +637,55 @@ Gib ausschließlich den Markdown-Text zurück.`;
 
                 </div>
 
-                {!isStreaming && markdown && (
-                  <>
-                    <div className="download-bar">
-                      <button className="btn-dl-main"
-                        onClick={() => downloadBlob(markdown, `${basename}.md`, 'text/markdown;charset=utf-8')}>
-                        ↓ Markdown (.md)
-                      </button>
-                      {figures.length > 0 && (
-                        <button className="btn-dl-main"
-                          onClick={() => figures.forEach(f => downloadDataUrl(f.dataUrl, f.name))}>
-                          ↓ Abbildungen ({figures.length}×&thinsp;PNG)
-                        </button>
-                      )}
-                      <button className="btn-dl-main" onClick={downloadZip}>
-                        ↓ Alles als ZIP
-                      </button>
-                    </div>
-                    {tokenInfo && mode === 'claude' && (
-                      <div className="token-info">
-                        <span>Tokens verbraucht:</span>
-                        <span>Eingabe&nbsp;<span className="token-pill">{tokenInfo.input?.toLocaleString('de-CH')}</span></span>
-                        <span>Ausgabe&nbsp;<span className="token-pill">{tokenInfo.output?.toLocaleString('de-CH')}</span></span>
-                      </div>
-                    )}
-                  </>
-                )}
+                <div className="download-bar">
+                  <button className="btn-dl-main"
+                    onClick={() => dlBlob(markdown, `${basename}.md`, 'text/markdown;charset=utf-8')}>
+                    ↓ Markdown (.md)
+                  </button>
+                  {figures.length > 0 && (
+                    <button className="btn-dl-main"
+                      onClick={() => figures.forEach(f => dlDataUrl(f.dataUrl, f.name))}>
+                      ↓ Abbildungen ({figures.length}× PNG)
+                    </button>
+                  )}
+                  <button className="btn-dl-main" onClick={downloadZip}>
+                    ↓ Alles als ZIP
+                  </button>
+                </div>
               </div>
             )}
 
           </main>
 
           <footer className="footer">
-            Konvertierung via Claude API &nbsp;·&nbsp; Alle Seiten werden lokal im Browser gerendert &nbsp;·&nbsp;
-            API-Schlüssel verlässt den Browser nur als Request-Header an api.anthropic.com
+            Vollständig offline · Keine Daten verlassen den Browser · pdf.js + marked.js + JSZip
           </footer>
+
+          {/* ── Fixed status bar ── */}
+          {loading && (
+            <div className="statusbar">
+              <div className="status-stages">
+                {STAGES.map((s, i) => (
+                  <React.Fragment key={s.key}>
+                    {i > 0 && <span className="status-sep">›</span>}
+                    <span className={
+                      `status-stage ${i < stageIdx ? 'done' : i === stageIdx ? 'active' : 'wait'}`
+                    }>
+                      {i < stageIdx ? '✓ ' : ''}{s.label}
+                    </span>
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className="status-progress">
+                <div className="status-track">
+                  <div className="status-fill" style={{ width: `${progress}%` }} />
+                </div>
+                <span className="status-pct">{progress}%</span>
+              </div>
+              {step && <div className="status-text">{step}</div>}
+            </div>
+          )}
+
         </div>
       );
     };
